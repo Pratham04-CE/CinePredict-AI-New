@@ -6,15 +6,19 @@ sys.path.insert(0, os.getcwd())
 
 import app
 
+# Set dedicated test CSV path to prevent modifying production movie_data.csv
+TEST_CSV_PATH = "test_movie_data.csv"
+app.CSV_FILE_PATH = TEST_CSV_PATH
+
 log = []
 log.append("--- CinePredict AI Blank CSV Workflow Test ---")
 
-# Step 1: Initialize blank movie_data.csv
+# Step 1: Initialize blank test CSV
 empty_df = pd.DataFrame(columns=app.DATASET_COLUMNS)
-empty_df.to_csv("movie_data.csv", index=False)
+empty_df.to_csv(TEST_CSV_PATH, index=False)
 
 df = app.load_data()
-log.append(f"1. Loaded Data from movie_data.csv. Total rows: {len(df)}")
+log.append(f"1. Loaded Data from {TEST_CSV_PATH}. Total rows: {len(df)}")
 
 # Step 2: Simulate User Inputting 1st Movie
 movie1 = {
@@ -45,7 +49,7 @@ log.append(f"   Predicted Collection: Rs. {pred1} Cr")
 df_updated1 = pd.concat([df, pd.DataFrame([movie1])], ignore_index=True)
 app.save_data(df_updated1)
 df = app.load_data()
-log.append(f"   Saved to movie_data.csv! New row count: {len(df)}")
+log.append(f"   Saved to {TEST_CSV_PATH}! New row count: {len(df)}")
 
 # Step 3: Simulate User Inputting 2nd Movie
 movie2 = {
@@ -76,12 +80,20 @@ log.append(f"   Predicted Collection: Rs. {pred2} Cr")
 df_updated2 = pd.concat([df, pd.DataFrame([movie2])], ignore_index=True)
 app.save_data(df_updated2)
 df = app.load_data()
-log.append(f"   Saved to movie_data.csv! New row count: {len(df)}")
+log.append(f"   Saved to {TEST_CSV_PATH}! New row count: {len(df)}")
 
 log.append("--- ALL TESTS PASSED! BLANK CSV WORKFLOW OPERATES PERFECTLY ---")
 
 output_str = "\n".join(log)
 print(output_str, flush=True)
 
-with open("scratch/test_results.txt", "w", encoding="utf-8") as f:
+# Clean up test CSV
+if os.path.exists(TEST_CSV_PATH):
+    os.remove(TEST_CSV_PATH)
+
+# Reset app.CSV_FILE_PATH
+app.CSV_FILE_PATH = "movie_data.csv"
+
+# Write test log output safely
+with open("test_results.txt", "w", encoding="utf-8") as f:
     f.write(output_str)

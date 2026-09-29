@@ -1,11 +1,11 @@
 --- CinePredict AI Blank CSV Workflow Test ---
-1. Loaded Data from movie_data.csv. Total rows: 0
+1. Loaded Data from test_movie_data.csv. Total rows: 0
 2. Processing 1st Movie Input: Stree 2
    Hype Score: 7.8/10
    Predicted Collection: Rs. 144.0 Cr
-   Saved to movie_data.csv! New row count: 1
+   Saved to test_movie_data.csv! New row count: 1
 3. Processing 2nd Movie Input: Pushpa 2: The Rule
    Hype Score: 9.7/10
    Predicted Collection: Rs. 1418.0 Cr
-   Saved to movie_data.csv! New row count: 2
+   Saved to test_movie_data.csv! New row count: 2
 --- ALL TESTS PASSED! BLANK CSV WORKFLOW OPERATES PERFECTLY ---

@@ -181,47 +181,60 @@ import time
 @st.cache_data(ttl=2)
 def load_data():
     """
-    Loads movie dataset from movie_data.csv. 
-    If file is missing, empty, or corrupted, initializes a clean DataFrame with column headers.
+    Loads movie dataset from movie_data.csv safely.
+    Ensures missing columns are filled, types are normalized, and returns a clean DataFrame.
+    Does NOT overwrite movie_data.csv on read errors to prevent data loss.
     """
     if os.path.exists(CSV_FILE_PATH) and os.path.getsize(CSV_FILE_PATH) > 0:
-        try:
-            df = pd.read_csv(CSV_FILE_PATH)
-            for col in DATASET_COLUMNS:
-                if col not in df.columns:
-                    df[col] = None
-            df['Budget'] = pd.to_numeric(df['Budget'], errors='coerce').fillna(0.0)
-            df['Hype Score'] = pd.to_numeric(df['Hype Score'], errors='coerce').fillna(5.0)
-            df['Predicted Box Office Collection'] = pd.to_numeric(df['Predicted Box Office Collection'], errors='coerce').fillna(0.0)
-            return df
-        except Exception:
-            pass
+        for enc in ['utf-8', 'latin1', 'cp1252']:
+            try:
+                df = pd.read_csv(CSV_FILE_PATH, encoding=enc)
+                for col in DATASET_COLUMNS:
+                    if col not in df.columns:
+                        df[col] = None
+                df['Budget'] = pd.to_numeric(df['Budget'], errors='coerce').fillna(0.0)
+                df['Hype Score'] = pd.to_numeric(df['Hype Score'], errors='coerce').fillna(5.0)
+                df['Predicted Box Office Collection'] = pd.to_numeric(df['Predicted Box Office Collection'], errors='coerce').fillna(0.0)
+                return df[DATASET_COLUMNS]
+            except Exception:
+                continue
 
-    empty_df = pd.DataFrame(columns=DATASET_COLUMNS)
-    try:
-        empty_df.to_csv(CSV_FILE_PATH, index=False)
-    except Exception:
-        pass
-    return empty_df
+    return pd.DataFrame(columns=DATASET_COLUMNS)
 
 def save_data(df):
     """
-    Saves DataFrame to movie_data.csv with UTF-8 encoding & retry logic 
-    to handle Windows file lock / permission conflicts smoothly.
+    Saves DataFrame to movie_data.csv atomically using a temporary file 
+    and retry logic to prevent file corruption or truncation on Windows.
     """
-    st.cache_data.clear()
+    try:
+        st.cache_data.clear()
+    except Exception:
+        pass
+
+    tmp_path = CSV_FILE_PATH + ".tmp"
+    
     for attempt in range(10):
         try:
-            df.to_csv(CSV_FILE_PATH, index=False, encoding='utf-8')
-            return True
+            df.to_csv(tmp_path, index=False, encoding='utf-8')
+            if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                os.replace(tmp_path, CSV_FILE_PATH)
+                return True
         except (PermissionError, OSError):
-            time.sleep(0.2)
+            time.sleep(0.15)
             try:
-                with open(CSV_FILE_PATH, 'w', encoding='utf-8', newline='') as f:
-                    df.to_csv(f, index=False)
+                df.to_csv(CSV_FILE_PATH, index=False, encoding='utf-8')
                 return True
             except Exception:
-                time.sleep(0.2)
+                time.sleep(0.15)
+        except Exception:
+            time.sleep(0.15)
+            
+    if os.path.exists(tmp_path):
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+            
     return False
 
 # ==========================================
@@ -401,9 +414,8 @@ def main():
     if 'movie_df' not in st.session_state:
         st.session_state['movie_df'] = load_data()
     else:
-        # Check if disk file was modified externally
         disk_df = load_data()
-        if len(disk_df) > len(st.session_state['movie_df']):
+        if not disk_df.equals(st.session_state['movie_df']):
             st.session_state['movie_df'] = disk_df
             
     df = st.session_state['movie_df']
@@ -492,10 +504,13 @@ def main():
 
                     status_text, status_class, roi = classify_movie_performance(predicted_box_office, budget)
 
-                    new_df = pd.concat([df, pd.DataFrame([new_movie_dict])], ignore_index=True)
-                    st.session_state['movie_df'] = new_df
-                    df = new_df
+                    new_df = pd.concat([st.session_state['movie_df'], pd.DataFrame([new_movie_dict])], ignore_index=True)
                     saved_ok = save_data(new_df)
+                    if saved_ok:
+                        st.session_state['movie_df'] = new_df
+                        df = new_df
+                    else:
+                        df = st.session_state['movie_df']
 
                 # --- DISPLAY RESULTS CARD ---
                 st.markdown("---")
@@ -531,7 +546,7 @@ def main():
                 else:
                     st.caption("✨ *Storyline hype score generated live via Google Gemini Generative AI API.*")
 
-                st.success(f"✅ Entry saved to `movie_data.csv`! Total records in dataset: **{len(df)}**.")
+                st.success(f"✅ Entry saved to `movie_data.csv`! Total records in dataset: **{len(st.session_state['movie_df'])}**.")
                 st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
@@ -540,6 +555,7 @@ def main():
     with tab2:
         st.subheader("📊 Interactive Box Office & Market Analytics")
         st.write("Explore industry trends, top grossers, budget vs collection patterns, and hype impact.")
+        df = st.session_state['movie_df']
 
         if df.empty or len(df) == 0:
             st.info("📥 **`movie_data.csv` is currently empty.** Go to the **Prediction Studio** tab and submit a movie to start generating interactive analytics!")
