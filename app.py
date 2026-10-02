@@ -51,23 +51,11 @@ st.markdown("""
         width: 0px !important;
     }
 
-    /* Dark Theme Core */
-    .main {
-        background-color: #0B0E14;
-        color: #F0F2F5;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-    
-    /* Header Container */
-    .stHeader {
-        background-color: rgba(11, 14, 20, 0.9);
-    }
-    
-    /* Glassmorphism Card Styling */
+    /* Theme-Aware Glassmorphism Card Styling */
     .glass-card {
-        background: linear-gradient(135deg, rgba(26, 31, 46, 0.8), rgba(15, 20, 32, 0.9));
-        border: 1px solid rgba(255, 215, 0, 0.15);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        background: var(--background-color); 
+        border: 1px solid rgba(150, 150, 150, 0.2);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         backdrop-filter: blur(10px);
         border-radius: 16px;
         padding: 24px;
@@ -76,12 +64,12 @@ st.markdown("""
     
     .glow-gold {
         border-color: rgba(255, 215, 0, 0.4) !important;
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.15) !important;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.1) !important;
     }
 
     .glow-red {
         border-color: rgba(229, 9, 20, 0.4) !important;
-        box-shadow: 0 0 20px rgba(229, 9, 20, 0.15) !important;
+        box-shadow: 0 0 15px rgba(229, 9, 20, 0.1) !important;
     }
 
     /* Custom Metric Badges */
@@ -98,13 +86,11 @@ st.markdown("""
     .badge-blockbuster {
         background: linear-gradient(45deg, #FFD700, #FF8C00);
         color: #000000;
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
     }
     
     .badge-hit {
         background: linear-gradient(45deg, #00E676, #00B0FF);
         color: #000000;
-        box-shadow: 0 0 15px rgba(0, 230, 118, 0.4);
     }
     
     .badge-average {
@@ -115,7 +101,6 @@ st.markdown("""
     .badge-flop {
         background: linear-gradient(45deg, #FF1744, #D50000);
         color: #FFFFFF;
-        box-shadow: 0 0 15px rgba(255, 23, 68, 0.5);
     }
 
     /* Streamlit Metric Overrides */
@@ -127,37 +112,6 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
     }
 
-    /* Tab Styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 12px;
-        background-color: #131722;
-        padding: 8px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre;
-        background-color: transparent;
-        border-radius: 8px;
-        color: #A0AEC0;
-        font-weight: 600;
-    }
-
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #E50914, #B81D24) !important;
-        color: #FFFFFF !important;
-        box-shadow: 0 4px 12px rgba(229, 9, 20, 0.4);
-    }
-    
-    /* Input Field Custom Styling */
-    .stTextInput > div > div > input, .stSelectbox > div > div, .stTextArea > div > div > textarea {
-        background-color: #1A1F2C !important;
-        color: #F0F2F5 !important;
-        border-radius: 8px !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -419,7 +373,14 @@ def main():
             st.session_state['movie_df'] = disk_df
             
     df = st.session_state['movie_df']
+    # Check environment variable first, then Streamlit secrets
     user_api_key = os.getenv("GEMINI_API_KEY")
+    if not user_api_key:
+        try:
+            user_api_key = st.secrets.get("GEMINI_API_KEY", "")
+        except FileNotFoundError:
+            pass
+
 
     # --- MAIN HEADER ---
     st.markdown("""
@@ -433,8 +394,6 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    if not user_api_key:
-        st.warning("⚠️ **GEMINI_API_KEY is missing!** Please configure the `GEMINI_API_KEY` environment variable to enable live Google Gemini AI storyline hype scoring. System is currently using fallback algorithmic scoring.")
 
     # Navigation Tabs
     tab1, tab2 = st.tabs(["🔮 Prediction Studio", "📊 Analytics & Insights Dashboard"])
