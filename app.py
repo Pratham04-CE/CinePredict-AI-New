@@ -498,12 +498,12 @@ def main():
                     </div>
                 """, unsafe_allow_html=True)
 
-                st.info(f"**🤖 Gemini AI Commercial Insight:** {ai_reasoning}")
-
-                if fallback_used:
-                    st.caption("ℹ️ *Note: Computed using CinePredict fallback hype evaluator.*")
-                else:
-                    st.caption("✨ *Storyline hype score generated live via Google Gemini Generative AI API.*")
+                # st.info(f"**🤖 Gemini AI Commercial Insight:** {ai_reasoning}")
+                #
+                # if fallback_used:
+                #     st.caption("ℹ️ *Note: Computed using CinePredict fallback hype evaluator.*")
+                # else:
+                #     st.caption("✨ *Storyline hype score generated live via Google Gemini Generative AI API.*")
 
                 st.success(f"✅ Entry saved to `movie_data.csv`! Total records in dataset: **{len(st.session_state['movie_df'])}**.")
                 st.markdown('</div>', unsafe_allow_html=True)
